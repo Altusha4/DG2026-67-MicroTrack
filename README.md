@@ -68,8 +68,8 @@ All figures above are recomputable from `results/multiseed_raw.csv` and
 Requires Python 3.9 or newer.
 
 ```bash
-git clone https://github.com/TODO-USER/TODO-REPO.git
-cd TODO-REPO
+git clone https://github.com/Altusha4/DG2026_67_MicroTrack.git
+cd DG2026_67_MicroTrack
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```

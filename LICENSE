@@ -19,11 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-This MIT License applies to the source code in `src/` only.
-
-The telemetry datasets in `data/`, the derived results in `results/`, and the
-manuscript source in `paper/` are licensed separately under the Creative
-Commons Attribution 4.0 International License. See `LICENSE-DATA`.

@@ -19,8 +19,8 @@ authors:
     family-names: Shoman
     affiliation: Astana IT University
 license: MIT
-license-url: https://github.com/TODO-USER/TODO-REPO/blob/main/LICENSE
-repository-code: https://github.com/TODO-USER/TODO-REPO
+license-url: https://github.com/Altusha4/DG2026_67_MicroTrack/blob/main/LICENSE
+repository-code: https://github.com/Altusha4/DG2026_67_MicroTrack
 abstract: >-
   A four-layer Digital Twin framework for an ESP32-S3-instrumented hydroponic
   grow-box, used as a reproducible harness to benchmark a fixed-threshold

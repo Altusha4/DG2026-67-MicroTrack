@@ -1,0 +1,65 @@
+cff-version: 1.2.0
+title: >-
+  Digital Twin Benchmarking of Microclimate Control for IoT Hydroponic
+  Grow-Boxes: A Two-Period Evaluation of Threshold, Correlation-Aware, and
+  Q-Learning Strategies
+message: >-
+  If you use this software, dataset, or results, please cite the accompanying
+  conference paper.
+type: software
+authors:
+  - given-names: Altynay
+    family-names: Yertay
+    affiliation: Astana IT University
+  - given-names: Kuanysh
+    family-names: Bakirov
+    affiliation: L.N. Gumilyov Eurasian National University
+    email: k.bakirov@enu.kz
+  - given-names: Aruzhan
+    family-names: Shoman
+    affiliation: Astana IT University
+license: MIT
+license-url: https://github.com/TODO-USER/TODO-REPO/blob/main/LICENSE
+repository-code: https://github.com/TODO-USER/TODO-REPO
+abstract: >-
+  A four-layer Digital Twin framework for an ESP32-S3-instrumented hydroponic
+  grow-box, used as a reproducible harness to benchmark a fixed-threshold
+  baseline, a correlation-aware orchestrator, and a tabular Q-learning agent
+  with a comfort-band reward on approximately 1.3 million telemetry records
+  spanning two operating periods, over N=10 random seeds.
+keywords:
+  - digital twin
+  - reinforcement learning
+  - Q-learning
+  - hydroponics
+  - microclimate control
+  - Internet of Things
+  - ESP32
+  - controlled-environment agriculture
+  - generalization
+preferred-citation:
+  type: conference-paper
+  title: >-
+    Digital Twin Benchmarking of Microclimate Control for IoT Hydroponic
+    Grow-Boxes: A Two-Period Evaluation of Threshold, Correlation-Aware, and
+    Q-Learning Strategies
+  authors:
+    - given-names: Altynay
+      family-names: Yertay
+      affiliation: Astana IT University
+    - given-names: Kuanysh
+      family-names: Bakirov
+      affiliation: L.N. Gumilyov Eurasian National University
+    - given-names: Aruzhan
+      family-names: Shoman
+      affiliation: Astana IT University
+  collection-title: >-
+    TODO: full proceedings title of IEEE DG 2026
+  conference:
+    name: 'IEEE DG 2026'
+  publisher:
+    name: IEEE
+  year: 2026
+  start: 1  # TODO: first page
+  end: 6    # TODO: last page
+  doi: 10.0000/TODO  # TODO: replace with the assigned DOI once published

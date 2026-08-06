@@ -26,7 +26,8 @@ data/box_data_p2/
 *.out
 *.synctex.gz
 *.toc
-paper/*.pdf
+paper/main.pdf
+paper/generalization.pdf
 
 .DS_Store
 Thumbs.db

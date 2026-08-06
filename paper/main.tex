@@ -9,6 +9,8 @@
 \usepackage{multirow}
 \usepackage{array}
 \usepackage{url}
+\Urlmuskip=0mu plus 1mu\relax
+\def\UrlBreaks{\do\/\do\-\do\_\do\.}
 
 \begin{document}
 
@@ -141,7 +143,7 @@ that short sampling intervals capture actuation-relevant dynamics. Our platform
 extends monitoring toward closed-loop adaptive control evaluated through the DT
 harness.
 
-\begin{table}[t]
+\begin{table}[!b]
 \caption{Positioning against related DT/RL work for controlled-environment agriculture}
 \label{tab:related}
 \centering
@@ -383,7 +385,7 @@ failure, since its mean humidity sits exactly at the reference.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{generalization.png}
+\includegraphics[width=\columnwidth]{generalization.pdf}
 \caption{Total actuator energy, mean $\pm$ SD over 10 seeds. In Period 1 the
 agent saves $26.0\%$; in the held-out Period 2 it costs $95.8\%$ \emph{more}
 than the baseline, driven by compensatory heating.}

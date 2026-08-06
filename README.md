@@ -59,7 +59,7 @@ All figures above are recomputable from `results/multiseed_raw.csv` and
 ├── paper/main.tex       manuscript source
 ├── requirements.txt
 ├── LICENSE              MIT — applies to src/ only
-├── LICENSE-DATA         CC BY 4.0 — applies to data/, results/, paper/
+├── LICENSE-DATA.md      CC BY 4.0 — applies to data/, results/, paper/
 └── CITATION.cff
 ```
 
@@ -90,14 +90,25 @@ python src/make_fig.py
 This takes roughly **35–45 minutes on a single CPU core** and needs no GPU. The
 first command rewrites the tables, raw metrics, and `paper_numbers.json` in
 `results/`; the second regenerates Fig. 1 from those metrics. The experiment
-script deliberately writes no figure, so the compact single-column PNG used in
-the paper is only ever produced by `make_fig.py`.
+script deliberately writes no figure, so the figure used in the paper is only
+ever produced by `make_fig.py`.
+
+`make_fig.py` writes three files:
+
+| File | Purpose |
+|---|---|
+| `generalization.pdf` | vector; **this is what the manuscript includes**. 3.4 × 2.5 in, 8 pt STIXGeneral, fonts embedded as Type 42 (IEEE PDF eXpress rejects Type 3) |
+| `generalization.svg` | vector source, for editing or the web |
+| `generalization.png` | 600 dpi raster preview only |
+
+`pdflatex` cannot `\includegraphics` an SVG, which is why the paper uses the PDF
+rather than the SVG.
 
 `paper/main.tex` includes the figure by bare filename, so building the PDF needs
-the PNG beside it:
+it beside the source:
 
 ```bash
-cp results/generalization.png paper/
+cp results/generalization.pdf paper/
 cd paper && pdflatex main.tex && pdflatex main.tex
 ```
 
@@ -173,7 +184,7 @@ To see the split on your own copy:
 
 ```bash
 python -c "
-import glob, zipfile, io, pandas as pd
+import zipfile, io, pandas as pd
 with zipfile.ZipFile('data/box_data.zip') as z:
     names = [n for n in z.namelist() if n.endswith('.csv')]
     short = [n for n in names
@@ -193,7 +204,7 @@ addresses, credentials, device serial numbers, or personal data.
 | Table II (environment statistics) | `microtrack_revision.py` | `results/tab_windows.tex`, `results/paper_numbers.json` (`windows`) |
 | Table III (multi-seed comparison) | `microtrack_revision.py` | `results/tab_multiseed.tex`, per-seed values in `results/multiseed_raw.csv` |
 | Table IV (sensitivity) | `microtrack_revision.py` | `results/tab_sensitivity.tex`, raw sweep in `results/sensitivity_raw.csv` |
-| Fig. 1 (energy reversal) | `make_fig.py` | `results/generalization.png` |
+| Fig. 1 (energy reversal) | `make_fig.py` | `results/generalization.pdf` (plus `.svg` and `.png`) |
 | In-text statistics (Wilcoxon *p*, relative deltas, break-even, Twin fidelity) | `microtrack_revision.py` | `results/paper_numbers.json` |
 
 Two tables in the manuscript are hand-augmented rather than pasted verbatim, so
@@ -237,9 +248,9 @@ print('max abs error:', np.abs(calc - ms.energy_kwh_month).max())
 "
 ```
 
-Regenerating Fig. 1 on a different matplotlib version reproduces the layout and
-all values exactly, but font rasterization differs slightly, so the PNG will not
-be byte-identical to the published one.
+Fig. 1 is vector output and therefore resolution-independent. Regenerating it on
+a different matplotlib version reproduces the layout and every value exactly,
+but the file will not be byte-identical.
 
 ## Citation
 
@@ -265,7 +276,7 @@ proceedings are published.
 | Contents | License |
 |---|---|
 | `src/` | MIT — see `LICENSE` |
-| `data/`, `results/`, `paper/` | CC BY 4.0 — see `LICENSE-DATA` |
+| `data/`, `results/`, `paper/` | CC BY 4.0 — see `LICENSE-DATA.md` |
 
 ## Acknowledgment
 

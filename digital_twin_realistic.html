@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Twin — Grow-Tent Rig</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root{
+    --ink:#161a20; --ink-dim:#5a6472; --line:rgba(30,40,55,.14);
+    --panel:rgba(255,255,255,.82); --fan:#2f8fd0; --heat:#e0552f; --pump:#3f9fd8;
+    --good:#1f8a4c; --warn:#d1502a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;font-family:'Space Grotesk',system-ui,sans-serif;color:var(--ink);
+    background:linear-gradient(180deg,#eef0f2 0%,#dfe3e7 55%,#d3d8dd 100%);-webkit-font-smoothing:antialiased}
+  #scene{position:fixed;inset:0;display:block}
+  .glass{background:var(--panel);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);
+    border-radius:14px;box-shadow:0 10px 40px -18px rgba(20,30,45,.4)}
+
+  #top{position:fixed;top:14px;left:14px;right:14px;display:flex;gap:14px;align-items:center;justify-content:space-between;
+    padding:10px 16px;z-index:20;flex-wrap:wrap}
+  #title b{font-weight:700;font-size:15.5px}
+  #title span{display:block;font-size:11px;color:var(--ink-dim);margin-top:1px}
+  .controls{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+  .lab{font-size:11px;color:var(--ink-dim);font-weight:600;margin-right:2px}
+  select,.tempwrap,.seg,.btn{border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.7)}
+  select{font-family:inherit;font-size:12.5px;font-weight:600;color:var(--ink);padding:7px 10px;cursor:pointer;outline:none}
+  .seg{display:flex;overflow:hidden}
+  .seg button{background:none;border:0;color:var(--ink-dim);font-family:inherit;font-size:12px;font-weight:600;padding:7px 12px;cursor:pointer}
+  .seg button.on{color:#fff;background:#2b3a4f}
+  .tempwrap{display:flex;align-items:center;gap:8px;padding:6px 11px}
+  .tempwrap input{width:104px;accent-color:#2b3a4f}
+  .tempval{font-family:'Space Mono',monospace;font-size:12.5px;font-weight:700;min-width:50px;text-align:right}
+  .btn{font-family:inherit;font-size:12px;font-weight:600;color:var(--ink);padding:7px 11px;cursor:pointer}
+  .btn:hover{background:#fff}
+
+  /* sensor panel */
+  #panel{position:fixed;left:14px;bottom:14px;z-index:20;width:min(310px,calc(100vw - 28px));padding:14px 15px}
+  #panel .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px}
+  #panel h3{margin:0;font-size:12.5px;font-weight:700}
+  .runpill{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;color:#fff}
+  .metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:11px 0 6px}
+  .metric{background:rgba(255,255,255,.6);border:1px solid var(--line);border-radius:9px;padding:7px 9px}
+  .metric .k{font-size:10px;color:var(--ink-dim);font-weight:600}
+  .metric .v{font-family:'Space Mono',monospace;font-size:17px;font-weight:700;line-height:1.1}
+  .metric .v small{font-size:10.5px;color:var(--ink-dim);font-weight:400}
+  .acts{display:flex;gap:7px;margin:8px 0 4px}
+  .achip{flex:1;text-align:center;border:1px solid var(--line);border-radius:9px;padding:6px 3px;font-size:10px;font-weight:700;
+    color:var(--ink-dim);background:rgba(255,255,255,.5);transition:.12s}
+  .achip.on{color:#fff}
+  .achip.fan.on{background:var(--fan);border-color:var(--fan)}
+  .achip.heat.on{background:var(--heat);border-color:var(--heat)}
+  .achip.pump.on{background:var(--pump);border-color:var(--pump)}
+  #verdict{margin-top:9px;padding:8px 10px;border-radius:9px;font-size:12px;line-height:1.35;background:rgba(20,30,45,.05);border:1px solid var(--line)}
+  #paperline{margin-top:7px;font-size:10.5px;color:var(--ink-dim)}
+  #paperline b{color:var(--ink)}
+
+  #help{position:fixed;right:14px;bottom:14px;z-index:20;padding:11px 13px;width:min(232px,calc(100vw - 28px));font-size:11px;line-height:1.5;color:var(--ink-dim)}
+  #help b{color:var(--ink)}
+  #help .k{display:inline-block;padding:1px 6px;border:1px solid var(--line);border-radius:5px;background:rgba(255,255,255,.7);color:var(--ink);font-size:10px;font-weight:600}
+  @media(max-width:820px){#help{display:none} #title span{display:none}}
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<div id="top" class="glass">
+  <div id="title"><b>Digital Twin · our grow-tent rig</b><span>Live microclimate model of the AgroTech ESP32-S3 cabinet</span></div>
+  <div class="controls">
+    <span class="lab">Controller</span>
+    <select id="ctrlSel">
+      <option value="threshold">Threshold baseline</option>
+      <option value="correlation">Correlation-aware</option>
+      <option value="qlearn" selected>Q-Learning</option>
+    </select>
+    <div class="seg" id="periodSeg">
+      <button data-p="P1" class="on">Warm P1</button><button data-p="P2">Cool P2</button>
+    </div>
+    <div class="tempwrap"><span class="lab">Ambient</span><input type="range" id="temp" min="18" max="32" step="0.1" value="26.8"><span class="tempval" id="tempVal">26.8°</span></div>
+    <button class="btn" id="playBtn">⏸</button>
+    <div class="seg" id="speedSeg"><button data-s="0.5">.5×</button><button data-s="1" class="on">1×</button><button data-s="3">3×</button></div>
+    <button class="btn" id="camBtn">⤢ View</button>
+  </div>
+</div>
+
+<div id="panel" class="glass">
+  <div class="row"><h3>Sensors — live</h3><span class="runpill" id="runPill">Q-LEARNING</span></div>
+  <div class="metrics">
+    <div class="metric"><div class="k">Air temperature</div><div class="v"><span id="mT">--</span><small> °C</small></div></div>
+    <div class="metric"><div class="k">Relative humidity</div><div class="v"><span id="mRH">--</span><small> %</small></div></div>
+    <div class="metric"><div class="k">CO₂</div><div class="v"><span id="mCO2">--</span><small> ppm</small></div></div>
+    <div class="metric"><div class="k">Energy (extrap.)</div><div class="v"><span id="mE">--</span><small> kWh/mo</small></div></div>
+  </div>
+  <div class="acts">
+    <div class="achip fan" id="aFan">FAN</div><div class="achip heat" id="aHeat">HEATER</div><div class="achip pump" id="aPump">PUMP</div>
+  </div>
+  <div id="verdict">Warming up…</div>
+  <div id="paperline"></div>
+</div>
+
+<div id="help" class="glass">
+  <b>Drag</b> orbit · <b>scroll</b> zoom · <b>right-drag</b> pan.<br>
+  Pick a <b>Controller</b>, switch <span class="k">Warm P1</span>/<span class="k">Cool P2</span>, or move <b>Ambient</b> — the fan, heater, pump and the box's OLED react live.
+</div>
+
+<script>
+"use strict";
+/* ============ SIMULATION (paper physics + controllers) ============ */
+const FAN={T:-0.10,RH:-0.6,CO2:-18},HEAT={T:+0.15,RH:-0.3},PUMP={RH:+0.9};
+const POW={fan:18,heat:120,pump:10},HM=730;
+const PERIODS={
+  P1:{Ttar:26.8,Tsd:1.1,RHtar:53.5,RHsd:5.1,CO2:569,paper:{en:"−26 ± 22%",p:"p = 0.010",sign:-1}},
+  P2:{Ttar:24.3,Tsd:1.5,RHtar:55.0,RHsd:10.4,CO2:525,paper:{en:"+96 ± 66%",p:"p = 0.002",sign:1}}
+};
+let period="P1",ambient=26.8,playing=true,speed=1,ctrlId="qlearn";
+function gauss(sd){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function mkBox(c){const P=PERIODS[period];return {ctrl:c,T:ambient+gauss(.4),RH:P.RHtar+gauss(3),CO2:P.CO2,rhHist:[],fan:false,heat:false,pump:false,steps:0,fanS:0,heatS:0,pumpS:0,health:.7};}
+function decide(b){const T=b.T,RH=b.RH,CO2=b.CO2;
+  if(b.ctrl==="threshold")return{fan:(T>25.5||CO2>800),heat:(T<20),pump:true};
+  if(b.ctrl==="correlation"){const p=b.rhHist.length>=8?b.rhHist[b.rhHist.length-8]:RH;return{fan:(T>25.5||CO2>800||((RH-p)>2&&T>23.5)),heat:(T<20),pump:true};}
+  return{fan:(T>27||CO2>850),heat:(T<23),pump:(RH<56)};} // Q-Learning ≈ comfort band [23,27], RH~55
+function step(b){const P=PERIODS[period],kT=.25,kRH=.25,kC=.06,a=decide(b);b.fan=a.fan;b.heat=a.heat;b.pump=a.pump;
+  b.T+=kT*(ambient-b.T)+gauss(P.Tsd*Math.sqrt(2*kT))+(a.fan?FAN.T:0)+(a.heat?HEAT.T:0);
+  b.RH+=kRH*(P.RHtar-b.RH)+gauss(P.RHsd*Math.sqrt(2*kRH))+(a.fan?FAN.RH:0)+(a.heat?HEAT.RH:0)+(a.pump?PUMP.RH:0);
+  b.CO2+=kC*(P.CO2-b.CO2)+gauss(6)+4+(a.fan?FAN.CO2:0);
+  b.RH=Math.max(8,Math.min(98,b.RH));b.CO2=Math.max(380,b.CO2);b.rhHist.push(b.RH);if(b.rhHist.length>40)b.rhHist.shift();
+  b.steps++;if(a.fan)b.fanS++;if(a.heat)b.heatS++;if(a.pump)b.pumpS++;
+  b.health+=(b.T>=18&&b.T<=28?.004:-.01);b.health=Math.max(.15,Math.min(1,b.health));}
+const kwh=b=>b.steps?(POW.fan*b.fanS/b.steps+POW.heat*b.heatS/b.steps+POW.pump*b.pumpS/b.steps)*HM/1000:0;
+let box=mkBox(ctrlId), ref=mkBox("threshold");   // ref = hidden threshold baseline
+
+/* ============ THREE.JS SCENE (realistic grow-tent) ============ */
+const canvas=document.getElementById("scene");
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const scene=new THREE.Scene(); scene.fog=new THREE.Fog(0xd7dbdf,26,60);
+const camera=new THREE.PerspectiveCamera(44,innerWidth/innerHeight,0.1,300);
+
+scene.add(new THREE.HemisphereLight(0xffffff,0x9098a0,0.85));
+const key=new THREE.DirectionalLight(0xfff4e6,0.75);key.position.set(9,15,11);scene.add(key);
+const fill=new THREE.DirectionalLight(0xbcd0e6,0.4);fill.position.set(-9,7,-6);scene.add(fill);
+
+// materials
+function foamTex(){const c=document.createElement("canvas");c.width=c.height=128;const x=c.getContext("2d");
+  x.fillStyle="#cbcecf";x.fillRect(0,0,128,128);
+  for(let i=0;i<1600;i++){const g=(120+Math.random()*90)|0;x.fillStyle="rgba("+g+","+g+","+(g+4)+",0.45)";x.fillRect(Math.random()*128,Math.random()*128,2,2);}
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(7,3);return t;}
+const M=(c,r=0.9,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
+const fabric=M(0xd7d5cd,1), trim=M(0x1b1b1e,.7), steel=M(0x17181c,.55,.5),
+  trayM=M(0x9498a0,.85), lidM=new THREE.MeshStandardMaterial({color:0xdfe1e2,map:foamTex(),roughness:.92}), holeM=M(0x0e0f11,.6),
+  pvcGrey=M(0x898f95,.5,.2), pvcWhite=M(0xece9e2,.5), boxM=M(0x9aa0a6,.55,.3),
+  tubM=M(0x22262b,.9), waterM=new THREE.MeshStandardMaterial({color:0x16242e,roughness:.25,metalness:.1,transparent:true,opacity:.85}),
+  ductM=M(0xc7ccd2,.6,.5), foilM=M(0x2a2d33,.6,.3), panelM=M(0xf0efe9,.7);
+
+const rack=new THREE.Group(); scene.add(rack);
+
+/* --- tent shell (cutaway: back + sides + ceiling + floor, front open) --- */
+const TW=8.6,TH=6.4,TD=5.4;
+function wall(w,h){return new THREE.Mesh(new THREE.PlaneGeometry(w,h),fabric);}
+const back=wall(TW,TH); back.position.set(0,TH/2,-TD/2); scene.add(back);
+const left=wall(TD,TH); left.rotation.y=Math.PI/2; left.position.set(-TW/2,TH/2,0); scene.add(left);
+const right=wall(TD,TH); right.rotation.y=-Math.PI/2; right.position.set(TW/2,TH/2,0); scene.add(right);
+const ceil=new THREE.Mesh(new THREE.PlaneGeometry(TW,TD),fabric); ceil.rotation.x=Math.PI/2; ceil.position.set(0,TH,0); scene.add(ceil);
+const floorT=new THREE.Mesh(new THREE.PlaneGeometry(TW,TD),M(0xe7e6e0,1)); floorT.rotation.x=-Math.PI/2; floorT.position.set(0,0.01,0); scene.add(floorT);
+const floorOut=new THREE.Mesh(new THREE.PlaneGeometry(60,60),M(0xcfd2d6,1)); floorOut.rotation.x=-Math.PI/2; scene.add(floorOut);
+// black seam trim on back wall (panels + valance) — signature tent look
+function seam(w,h,x,y,z,ry=0){const s=new THREE.Mesh(new THREE.BoxGeometry(w,h,0.04),trim);s.position.set(x,y,z);s.rotation.y=ry;scene.add(s);}
+seam(TW,0.08,0,TH-0.5,-TD/2+0.02);                 // top valance line
+[-TW/3,TW/3].forEach(x=>seam(0.06,TH-0.5,x,(TH-0.5)/2,-TD/2+0.02)); // vertical panel seams
+seam(TW,0.06,0,0.05,-TD/2+0.02);
+[[-TW/2,1],[TW/2,-1]].forEach(([x,s])=>{seam(0.06,TH,x+0.01*s,TH/2,-TD/4,Math.PI/2);seam(0.06,TH,x+0.01*s,TH/2,TD/4,Math.PI/2);});
+
+/* --- black metal rack frame --- */
+const RW=5.2,RH=5.5,RD=2.3,TIERS=4, t=0.07;
+const rx0=0, rz0=0.2;
+function post(x,z){const p=new THREE.Mesh(new THREE.BoxGeometry(t,RH,t),steel);p.position.set(x,RH/2,z);rack.add(p);}
+[-RW/2,RW/2].forEach(x=>[-RD/2,RD/2].forEach(z=>post(rx0+x,rz0+z)));
+const tierY=[];
+for(let i=0;i<=TIERS;i++){const y=0.5+i*(RH-0.7)/TIERS; tierY.push(y);
+  // side + front/back rails
+  [-RD/2,RD/2].forEach(z=>{const r=new THREE.Mesh(new THREE.BoxGeometry(RW,t,t),steel);r.position.set(rx0,y,rz0+z);rack.add(r);});
+  [-RW/2,RW/2].forEach(x=>{const r=new THREE.Mesh(new THREE.BoxGeometry(t,t,RD),steel);r.position.set(rx0+x,y,rz0);rack.add(r);});
+  // diagonal brace on side
+  const br=new THREE.Mesh(new THREE.BoxGeometry(0.04,Math.hypot(RW,(RH-0.7)/TIERS),0.04),steel);
+}
+
+/* --- plant clump (microgreens: green / purple / pea) --- */
+const PAL=[[0x6cae3e,0x7cc24a,0x5f9a38],[0x8a3a5a,0x6a2a4a,0x74a83a],[0xaec24a,0xcad86a,0x9ab84a],[0x4f8f32,0x6cae3e,0x86b84a]];
+const leafGeo=new THREE.SphereGeometry(1,6,4), stemGeo=new THREE.CylinderGeometry(0.004,0.009,1,4), soilGeo=new THREE.BoxGeometry(0.17,0.05,0.17);
+function clump(pal){const g=new THREE.Group();const leaves=[];
+  const soil=new THREE.Mesh(soilGeo,new THREE.MeshStandardMaterial({color:0x2a2018,roughness:1}));soil.position.y=0.02;g.add(soil);
+  const n=9+((Math.random()*4)|0);
+  for(let i=0;i<n;i++){const col=pal[(Math.random()*pal.length)|0];
+    const h=0.11+Math.random()*0.15, ang=Math.random()*6.283, rad=Math.random()*0.13, bx=Math.cos(ang)*rad, bz=Math.sin(ang)*rad, tilt=Math.random()*0.5, td=Math.random()*6.283;
+    const st=new THREE.Mesh(stemGeo,new THREE.MeshStandardMaterial({color:0x5f8f3a,roughness:.85}));
+    st.scale.y=h; st.position.set(bx,h/2+0.03,bz); st.rotation.set(Math.cos(td)*tilt,0,Math.sin(td)*tilt); g.add(st);
+    const lf=new THREE.Mesh(leafGeo,new THREE.MeshStandardMaterial({color:col,roughness:.55,emissive:col,emissiveIntensity:.16,flatShading:true}));
+    lf.scale.set(0.05,0.022,0.08); lf.position.set(bx+Math.sin(td)*tilt*h*0.7,h+0.03,bz+Math.cos(td)*tilt*h*0.7);
+    lf.rotation.set(Math.random()*0.7-0.35,Math.random()*6.283,Math.random()*0.7-0.35); lf.userData.base=new THREE.Color(col); g.add(lf); leaves.push(lf);}
+  g.userData.leaves=leaves; return g;}
+// net-pot ring
+const ringGeo=new THREE.TorusGeometry(0.12,0.02,6,14);
+
+/* --- a tray (grey lid with holes + net pots) or a black-sheeted tray --- */
+const allPlants=[];
+function buildTray(y,planted){
+  const g=new THREE.Group(); g.position.set(rx0,y,rz0); rack.add(g);
+  const tray=new THREE.Mesh(new THREE.BoxGeometry(RW-0.25,0.12,RD-0.25),trayM); tray.position.y=0.07; g.add(tray);
+  const lid=new THREE.Mesh(new THREE.BoxGeometry(RW-0.3,0.03,RD-0.3),lidM); lid.position.y=0.14; g.add(lid);
+  const cols=6,rows=3, ax=(RW-1.1)/(cols-1), az=(RD-1.0)/(rows-1);
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const x=-(RW-1.1)/2+c*ax, z=-(RD-1.0)/2+r*az;
+    const ring=new THREE.Mesh(ringGeo,holeM); ring.rotation.x=Math.PI/2; ring.position.set(x,0.16,z); g.add(ring);
+    const hole=new THREE.Mesh(new THREE.CircleGeometry(0.11,14),holeM); hole.rotation.x=-Math.PI/2; hole.position.set(x,0.155,z); g.add(hole);
+    if(Math.random()<0.62){const cl=clump(PAL[(Math.random()*PAL.length)|0]); cl.position.set(x,0.16,z);
+      const s=0.85+Math.random()*0.3; cl.scale.setScalar(s); cl.userData.base=s; g.add(cl); allPlants.push(cl);}
+  }
+}
+buildTray(tierY[0],true); buildTray(tierY[1],true); buildTray(tierY[2],true); buildTray(tierY[3],true);
+
+/* --- LED bars under each shelf (white + warm amber) --- */
+const ledLights=[];
+for(let i=1;i<=TIERS;i++){const y=tierY[i]-0.16;
+  for(let b=0;b<3;b++){const z=-RD/2+0.45+b*(RD-0.9)/2;
+    const warm=b===1;
+    const bar=new THREE.Mesh(new THREE.BoxGeometry(RW-0.6,0.08,0.14),M(0xb9bfc6,.4,.6));bar.position.set(rx0,y,rz0+z);rack.add(bar);
+    const strip=new THREE.Mesh(new THREE.BoxGeometry(RW-0.7,0.03,0.08),new THREE.MeshStandardMaterial({color:warm?0xffb45a:0xfff4e2,emissive:warm?0xff9a3a:0xfff2dc,emissiveIntensity:1.5}));
+    strip.position.set(rx0,y-0.05,rz0+z);rack.add(strip);}
+  const pl=new THREE.PointLight(0xfff0dc,0.32,4.2);pl.position.set(rx0,y-0.3,rz0);rack.add(pl);ledLights.push(pl);
+}
+
+/* --- grey PVC drain pipe (right side) + white PVC elbows (left) --- */
+function pipe(x,z,y0,y1,r=0.11,mat=pvcGrey){const c=new THREE.Mesh(new THREE.CylinderGeometry(r,r,y1-y0,14),mat);c.position.set(x,(y0+y1)/2,z);rack.add(c);return c;}
+pipe(rx0+RW/2-0.15,rz0+RD/2-0.25,0.2,RH-0.2);
+for(let i=1;i<TIERS;i++){const el=new THREE.Mesh(new THREE.TorusGeometry(0.11,0.09,8,12,Math.PI/2),pvcGrey);el.position.set(rx0+RW/2-0.15,tierY[i],rz0+RD/2-0.25);el.rotation.z=Math.PI;rack.add(el);
+  const arm=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,0.5,12),pvcGrey);arm.rotation.z=Math.PI/2;arm.position.set(rx0+RW/2-0.42,tierY[i]+0.09,rz0+RD/2-0.25);rack.add(arm);}
+pipe(rx0-RW/2+0.2,rz0-RD/2+0.3,0.2,RH-1.0,0.07,pvcWhite);
+for(let i=0;i<TIERS;i++){const arm=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.55,12),pvcWhite);arm.rotation.z=Math.PI/2;arm.position.set(rx0-RW/2+0.42,tierY[i]+0.13,rz0-RD/2+0.3);rack.add(arm);}
+
+/* --- control box with live OLED + colourful wires --- */
+const cbox=new THREE.Group(); cbox.position.set(rx0-RW/2+1.3,tierY[2]+0.55,rz0-RD/2+0.15); rack.add(cbox);
+const cb=new THREE.Mesh(new THREE.BoxGeometry(1.15,0.95,0.28),boxM); cbox.add(cb);
+// OLED canvas
+const oc=document.createElement("canvas");oc.width=256;oc.height=128;const octx=oc.getContext("2d");
+const oledTex=new THREE.CanvasTexture(oc);
+const oled=new THREE.Mesh(new THREE.PlaneGeometry(0.34,0.17),new THREE.MeshBasicMaterial({map:oledTex}));
+oled.position.set(0.18,-0.02,0.145);cbox.add(oled);
+function drawOLED(){octx.fillStyle="#04121e";octx.fillRect(0,0,256,128);octx.font="700 22px 'Space Mono',monospace";octx.textBaseline="top";
+  octx.fillStyle="#38e0c0";octx.fillText("T  "+box.T.toFixed(1)+String.fromCharCode(176)+"C",12,10);
+  octx.fillStyle="#7cc6ff";octx.fillText("RH "+box.RH.toFixed(0)+"%",12,38);
+  octx.fillStyle="#c9d24a";octx.fillText("CO2 "+box.CO2.toFixed(0),12,66);
+  const s=(box.fan?"F":"-")+(box.heat?"H":"-")+(box.pump?"P":"-");
+  octx.fillStyle="#ffffff";octx.fillText("["+s+"]",12,94);oledTex.needsUpdate=true;}
+// wire bundle drooping from top
+const wireCols=[0xff4444,0xffcc33,0x33cc55,0x3388ff,0xffffff,0xcc44cc];
+for(let i=0;i<6;i++){const pts=[];for(let j=0;j<=8;j++){const tt=j/8;pts.push(new THREE.Vector3(-0.2+i*0.07,0.5-tt*0.9-Math.sin(tt*Math.PI)*0.25,0.16-i*0.01));}
+  const geo=new THREE.BufferGeometry().setFromPoints(pts);
+  cbox.add(new THREE.Line(geo,new THREE.LineBasicMaterial({color:wireCols[i]})));}
+// small sensor board on a wire near tray 1
+const sens=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.1,0.03),M(0x1f7a3a,.6));sens.position.set(rx0+RW/2-1.2,tierY[1]+0.2,rz0+RD/2-0.2);rack.add(sens);
+
+/* --- reservoir tub + water + FAN on wall + HEATER glow + vent duct --- */
+const tub=new THREE.Mesh(new THREE.BoxGeometry(1.5,0.7,1.0),tubM);tub.position.set(rx0+0.8,0.35,rz0-0.1);rack.add(tub);
+const water=new THREE.Mesh(new THREE.BoxGeometry(1.36,0.04,0.86),waterM);water.position.set(rx0+0.8,0.62,rz0-0.1);rack.add(water);
+// exhaust fan (on back wall, upper-left) — spinning blades
+const fanG=new THREE.Group();fanG.position.set(-TW/2+1.0,TH-1.1,-TD/2+0.15);scene.add(fanG);
+const fring=new THREE.Mesh(new THREE.TorusGeometry(0.42,0.07,10,20),steel);fanG.add(fring);
+const fhousing=new THREE.Mesh(new THREE.CylinderGeometry(0.44,0.44,0.2,20,1,true),M(0x2a2d33,.6,.3));fhousing.rotation.x=Math.PI/2;fanG.add(fhousing);
+const blades=new THREE.Group();for(let i=0;i<5;i++){const bl=new THREE.Mesh(new THREE.BoxGeometry(0.38,0.02,0.13),M(0x33363c,.5,.3));bl.rotation.z=i*Math.PI*2/5;blades.add(bl);}
+const fhub=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,0.1,12),steel);fhub.rotation.x=Math.PI/2;blades.add(fhub);fanG.add(blades);
+// silver flexible vent duct (right wall)
+const duct=new THREE.Group();scene.add(duct);
+for(let i=0;i<10;i++){const seg=new THREE.Mesh(new THREE.TorusGeometry(0.32,0.09,8,14),ductM);
+  seg.position.set(TW/2-0.7+i*0.05, TH-0.6-i*0.28, -TD/2+1.6+i*0.02);seg.rotation.y=Math.PI/2;seg.rotation.x=0.15;duct.add(seg);}
+const vent=new THREE.Mesh(new THREE.TorusGeometry(0.34,0.08,10,18),M(0x111,.6));vent.position.set(TW/2-0.15,TH-0.7,-TD/2+1.5);vent.rotation.y=Math.PI/2;scene.add(vent);
+// wall control panel (green/red buttons) on left wall
+const cp=new THREE.Group();cp.position.set(-TW/2+0.06,TH-2.0,1.3);cp.rotation.y=Math.PI/2;scene.add(cp);
+cp.add(new THREE.Mesh(new THREE.BoxGeometry(1.1,0.7,0.08),panelM));
+const peg=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.55,0.04),M(0x3fae4f,.7));peg.position.set(0.75,0,0.02);cp.add(peg);
+[[0x2ecc55,-0.35],[0x2ecc55,-0.2],[0x2ecc55,-0.05],[0x2ecc55,0.1],[0xff4436,0.28]].forEach(([c,x])=>{const b=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.05,12),new THREE.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:.4}));b.rotation.x=Math.PI/2;b.position.set(x,0.14,0.06);cp.add(b);});
+// HEATER element (bottom of rack) — glows when on
+const heaterMat=new THREE.MeshStandardMaterial({color:0x552020,emissive:0xff3a1a,emissiveIntensity:0});
+const heater=new THREE.Mesh(new THREE.BoxGeometry(RW-1,0.1,0.14),heaterMat);heater.position.set(rx0,0.2,rz0+RD/2-0.35);rack.add(heater);
+const heatLight=new THREE.PointLight(0xff3a1a,0,3.5);heatLight.position.set(rx0,0.5,rz0+RD/2-0.4);rack.add(heatLight);
+
+/* --- orbit controls --- */
+const target=new THREE.Vector3(0,2.6,0.2); let orbit={theta:-0.72,phi:1.12,radius:13.5},auto=true;
+function applyCam(){const s=Math.sin(orbit.phi);camera.position.set(target.x+orbit.radius*s*Math.sin(orbit.theta),target.y+orbit.radius*Math.cos(orbit.phi),target.z+orbit.radius*s*Math.cos(orbit.theta));camera.lookAt(target);}
+function resetCam(){orbit={theta:-0.72,phi:1.12,radius:13.5};target.set(0,2.6,0.2);auto=false;applyCam();}
+let drag=null;
+canvas.addEventListener("pointerdown",e=>{auto=false;drag={x:e.clientX,y:e.clientY,btn:e.button,th:orbit.theta,ph:orbit.phi,tx:target.x,ty:target.y,tz:target.z};canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener("pointermove",e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+  if(drag.btn===2||e.shiftKey){const k=orbit.radius*0.0015,right=new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(camera.position.x-target.x,0,camera.position.z-target.z)).normalize();target.set(drag.tx-right.x*dx*k,Math.max(0.6,drag.ty+dy*k),drag.tz-right.z*dx*k);}
+  else{orbit.theta=drag.th-dx*0.006;orbit.phi=Math.max(0.2,Math.min(1.48,drag.ph-dy*0.006));}applyCam();});
+addEventListener("pointerup",()=>drag=null);
+canvas.addEventListener("wheel",e=>{e.preventDefault();auto=false;orbit.radius=Math.max(6,Math.min(30,orbit.radius*(1+Math.sign(e.deltaY)*0.09)));applyCam();},{passive:false});
+canvas.addEventListener("contextmenu",e=>e.preventDefault()); applyCam();
+
+/* ============ HUD + loop ============ */
+const $=id=>document.getElementById(id);
+const CN={threshold:["Threshold","#2b3a4f"],correlation:["Correlation","#2f7fb8"],qlearn:["Q-Learning","#1f8a4c"]};
+let fanSpin=0,heatGlow=0,acc=0,last=performance.now(),oledT=0,plantT=0;
+const _sick=new THREE.Color(0xb2a13a);
+function updHUD(){
+  $("mT").textContent=box.T.toFixed(1);$("mRH").textContent=box.RH.toFixed(0);$("mCO2").textContent=box.CO2.toFixed(0);$("mE").textContent=kwh(box).toFixed(1);
+  $("aFan").classList.toggle("on",box.fan);$("aHeat").classList.toggle("on",box.heat);$("aPump").classList.toggle("on",box.pump);
+  if(box.steps>40){const q=kwh(box),th=kwh(ref),pct=(q-th)/Math.max(.1,th)*100;
+    if(ctrlId==="threshold")$("verdict").innerHTML=`This is the <b>baseline</b>. Switch controller to compare against it.`;
+    else $("verdict").innerHTML=pct<0?`<b style="color:var(--good)">${Math.abs(pct).toFixed(0)}% less energy</b> than the Threshold baseline in this regime.`:`<b style="color:var(--warn)">+${pct.toFixed(0)}% more energy</b> than the Threshold baseline — compensatory heating.`;
+    const P=PERIODS[period].paper;$("paperline").innerHTML=`Paper, Q-Learning (${period==="P1"?"warm in-period":"cool held-out"}): energy <b>${P.en}</b> · ${P.p}`;
+  }
+}
+function animate(now){requestAnimationFrame(animate);const dt=Math.min(.05,(now-last)/1000);last=now;
+  if(auto){orbit.theta+=dt*0.08;applyCam();}
+  if(playing){acc+=dt*6*speed;let g=0;while(acc>=1&&g<20){step(box);step(ref);acc--;g++;}}
+  fanSpin+=((box.fan?0.6:0)-fanSpin)*0.08; blades.rotation.z+=fanSpin;
+  heatGlow+=((box.heat?1:0)-heatGlow)*0.1; heaterMat.emissiveIntensity=heatGlow*1.7; heatLight.intensity=heatGlow*1.5;
+  water.position.y=0.62+(box.pump?0.006*Math.sin(now*0.012):0);
+  if((plantT+=dt)>0.25){const f=(1-box.health)*0.7;allPlants.forEach(p=>{p.scale.setScalar(p.userData.base*(0.75+0.25*box.health));p.userData.leaves.forEach(l=>l.material.color.copy(l.userData.base).lerp(_sick,f));});plantT=0;}
+  oledT+=dt; if(oledT>0.2){drawOLED();oledT=0;}
+  updHUD(); renderer.render(scene,camera);
+}
+function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}
+addEventListener("resize",resize);resize();
+
+/* UI */
+function setAmbient(v){ambient=+v;$("temp").value=v;$("tempVal").textContent=(+v).toFixed(1)+"°";}
+$("temp").addEventListener("input",e=>setAmbient(e.target.value));
+$("ctrlSel").addEventListener("change",e=>{ctrlId=e.target.value;box=mkBox(ctrlId);ref=mkBox("threshold");acc=0;
+  $("runPill").textContent=CN[ctrlId][0].toUpperCase();$("runPill").style.background=CN[ctrlId][1];});
+$("periodSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;period=b.dataset.p;
+  document.querySelectorAll("#periodSeg button").forEach(x=>x.classList.toggle("on",x===b));setAmbient(PERIODS[period].Ttar);box=mkBox(ctrlId);ref=mkBox("threshold");acc=0;});
+$("speedSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;speed=+b.dataset.s;document.querySelectorAll("#speedSeg button").forEach(x=>x.classList.toggle("on",x===b));});
+$("playBtn").addEventListener("click",()=>{playing=!playing;$("playBtn").textContent=playing?"⏸":"▶";});
+$("camBtn").addEventListener("click",resetCam);
+$("runPill").style.background=CN[ctrlId][1];
+setAmbient(26.8); requestAnimationFrame(animate);
+</script>
+</body>
+</html>

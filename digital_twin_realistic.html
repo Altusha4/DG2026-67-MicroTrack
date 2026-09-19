@@ -15,7 +15,7 @@
     --good:#1f8a4c; --warn:#d1502a;
   }
   *{box-sizing:border-box}
-  html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;font-family:'Space Grotesk',system-ui,sans-serif;color:var(--ink);
+  html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;font-family:'Space Grotesk',system-ui,sans-serif;color:var(--ink);
     background:linear-gradient(180deg,#eef0f2 0%,#dfe3e7 55%,#d3d8dd 100%);-webkit-font-smoothing:antialiased}
   #scene{position:fixed;inset:0;display:block;touch-action:none}
   .glass{background:var(--panel);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);
@@ -35,7 +35,7 @@
   .tempwrap{display:flex;align-items:center;gap:8px;padding:6px 11px}
   .tempwrap input{width:104px;accent-color:#2b3a4f}
   .tempval{font-family:'Space Mono',monospace;font-size:12.5px;font-weight:700;min-width:50px;text-align:right}
-  .btn{font-family:inherit;font-size:12px;font-weight:600;color:var(--ink);padding:7px 11px;cursor:pointer}
+  .btn{touch-action:manipulation;font-family:inherit;font-size:12px;font-weight:600;color:var(--ink);padding:7px 11px;cursor:pointer}
   .btn:hover{background:#fff}
 
   /* sensor panel */
@@ -62,7 +62,14 @@
   #help{position:fixed;right:14px;bottom:14px;z-index:20;padding:11px 13px;width:min(232px,calc(100vw - 28px));font-size:11px;line-height:1.5;color:var(--ink-dim)}
   #help b{color:var(--ink)}
   #help .k{display:inline-block;padding:1px 6px;border:1px solid var(--line);border-radius:5px;background:rgba(255,255,255,.7);color:var(--ink);font-size:10px;font-weight:600}
-  @media (max-width:760px){
+  .miniclose{position:absolute;top:8px;right:9px;width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:rgba(255,255,255,.65);color:var(--ink-dim);font-size:15px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+  .miniclose:hover{background:#fff;color:var(--ink)}
+  #panel .row{padding-right:26px}
+  #showPanel,#showUI{position:fixed;z-index:22;display:none;align-items:center;gap:6px;padding:9px 13px;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer;border-radius:12px}
+  #showPanel{left:14px;bottom:14px} #showUI{top:14px;right:14px}
+  #showPanel:hover,#showUI:hover{background:#fff}
+  body.uihidden #top,body.uihidden #panel,body.uihidden #help,body.uihidden #showPanel{display:none!important}
+  @media (max-width:760px), (max-height:520px){
     #help{display:none}
     #top{top:8px;left:8px;right:8px;padding:7px 9px;gap:6px}
     #title{display:none}
@@ -101,10 +108,11 @@
     <button class="btn" id="playBtn">⏸</button>
     <div class="seg" id="speedSeg"><button data-s="0.5">.5×</button><button data-s="1" class="on">1×</button><button data-s="3">3×</button></div>
     <button class="btn" id="camBtn">⤢ View</button>
+    <button class="btn" id="hideUI">Hide UI</button>
   </div>
 </div>
 
-<div id="panel" class="glass">
+<div id="panel" class="glass"><button id="panelClose" class="miniclose" title="Hide sensors">×</button>
   <div class="row"><h3>Sensors — live</h3><span class="runpill" id="runPill">Q-LEARNING</span></div>
   <div class="metrics">
     <div class="metric"><div class="k">Air temperature</div><div class="v"><span id="mT">--</span><small> °C</small></div></div>
@@ -119,6 +127,8 @@
   <div id="paperline"></div>
 </div>
 
+<button id="showPanel" class="glass">📊 Sensors</button>
+<button id="showUI" class="glass">☰ Show UI</button>
 <div id="help" class="glass">
   <b>Drag</b> orbit · <b>scroll</b> zoom · <b>right-drag</b> pan.<br>
   Pick a <b>Controller</b>, switch <span class="k">Warm P1</span>/<span class="k">Cool P2</span>, or move <b>Ambient</b> — the fan, heater, pump and the box's OLED react live.
@@ -366,6 +376,10 @@ $("speedSeg").addEventListener("click",e=>{const b=e.target.closest("button");if
 $("playBtn").addEventListener("click",()=>{playing=!playing;$("playBtn").textContent=playing?"⏸":"▶";});
 $("camBtn").addEventListener("click",resetCam);
 $("runPill").style.background=CN[ctrlId][1];
+$("panelClose").onclick=()=>{$("panel").style.display="none";$("showPanel").style.display="flex";};
+$("showPanel").onclick=()=>{$("panel").style.display="";$("showPanel").style.display="none";};
+$("hideUI").onclick=()=>{document.body.classList.add("uihidden");$("showUI").style.display="flex";};
+$("showUI").onclick=()=>{document.body.classList.remove("uihidden");$("showUI").style.display="none";$("panel").style.display="";$("showPanel").style.display="none";};
 setAmbient(26.8); requestAnimationFrame(animate);
 </script>
 </body>
